@@ -38,7 +38,7 @@ jobs:
           cat noir-output.json
 
       - name: Upload noir output
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: noir-endpoints
           path: noir-output.json
