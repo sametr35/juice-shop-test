@@ -1,106 +1,36 @@
-name: Noir Attack Surface Detection
+name: Attack Surface Detection
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [main]
   pull_request:
-    branches: [ main, master, develop ]
-  workflow_dispatch:
+    branches: [main]
 
 jobs:
-  attack-surface-scan:
+  detect-attack-surface:
+    name: Run OWASP Noir (Attack Surface Detector)
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.21'
-        
-    - name: Install Noir
-      run: |
-        go install github.com/owasp-noir/noir@latest
-        
-    - name: Create output directory
-      run: mkdir -p scan-results
-      
-    - name: Run Noir Attack Surface Scan
-      run: |
-        echo "Starting Noir attack surface detection scan..."
-        noir -b . -o scan-results/endpoints.json -f json
-        
-    - name: Display scan results
-      run: |
-        echo "=== Noir Scan Results ==="
-        if [ -f scan-results/endpoints.json ]; then
-          echo "Endpoints found:"
-          cat scan-results/endpoints.json | jq '.' || cat scan-results/endpoints.json
-        else
-          echo "No endpoints file generated"
-        fi
-        
-    - name: Generate summary report
-      run: |
-        echo "=== Attack Surface Summary ===" > scan-results/summary.txt
-        echo "Scan Date: $(date)" >> scan-results/summary.txt
-        echo "Repository: ${{ github.repository }}" >> scan-results/summary.txt
-        echo "Branch: ${{ github.ref_name }}" >> scan-results/summary.txt
-        echo "Commit: ${{ github.sha }}" >> scan-results/summary.txt
-        echo "" >> scan-results/summary.txt
-        
-        if [ -f scan-results/endpoints.json ]; then
-          ENDPOINT_COUNT=$(cat scan-results/endpoints.json | jq length 2>/dev/null || echo "0")
-          echo "Total Endpoints Found: $ENDPOINT_COUNT" >> scan-results/summary.txt
-          echo "" >> scan-results/summary.txt
-          echo "Detailed Results:" >> scan-results/summary.txt
-          cat scan-results/endpoints.json >> scan-results/summary.txt
-        else
-          echo "No endpoints detected in the codebase" >> scan-results/summary.txt
-        fi
-        
-        cat scan-results/summary.txt
-        
-    - name: Upload scan results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: noir-scan-results
-        path: scan-results/
-        retention-days: 30
-        
-    - name: Comment PR with results
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const fs = require('fs');
-          const path = 'scan-results/summary.txt';
-          
-          if (fs.existsSync(path)) {
-            const summary = fs.readFileSync(path, 'utf8');
-            
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `## 🔍 Noir Attack Surface Scan Results\n\n\`\`\`\n${summary}\n\`\`\``
-            });
-          }
-          
-    - name: Fail on critical findings
-      run: |
-        if [ -f scan-results/endpoints.json ]; then
-          # Check if there are any critical security endpoints
-          CRITICAL_ENDPOINTS=$(cat scan-results/endpoints.json | jq -r '.[] | select(.method == "POST" or .method == "PUT" or .method == "DELETE") | .url' 2>/dev/null || echo "")
-          
-          if [ ! -z "$CRITICAL_ENDPOINTS" ]; then
-            echo "⚠️  Critical endpoints detected (POST/PUT/DELETE methods):"
-            echo "$CRITICAL_ENDPOINTS"
-            echo "Please review these endpoints for security implications."
-            # Uncomment the line below if you want to fail the workflow on critical findings
-            # exit 1
-          fi
-        fi
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17' # Projeye göre 8, 11, 17 seçebilirsin
+
+      - name: Download Noir Attack Surface Detector CLI
+        run: |
+          wget https://github.com/OWASP/ASD/releases/latest/download/attack-surface-detector-cli.jar -O noir-cli.jar
+
+      - name: Run Noir on the source code
+        run: |
+          mkdir output
+          java -jar noir-cli.jar ./ -o ./output/endpoints.json
+
+      - name: Show detected endpoints
+        run: |
+          echo "== Detected Endpoints =="
+          cat ./output/endpoints.json
