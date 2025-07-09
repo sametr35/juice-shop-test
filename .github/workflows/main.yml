@@ -1,36 +1,44 @@
-name: Attack Surface Detection
+name: Noir Endpoint Scanner
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
 
 jobs:
-  detect-attack-surface:
-    name: Run OWASP Noir (Attack Surface Detector)
+  scan-endpoints:
+    name: Run OWASP Noir
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Java
+      - name: Set up Java (if needed)
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '17' # Projeye göre 8, 11, 17 seçebilirsin
+          java-version: '17'
 
-      - name: Download Noir Attack Surface Detector CLI
+      - name: Install Noir CLI
         run: |
-          wget https://github.com/OWASP/ASD/releases/latest/download/attack-surface-detector-cli.jar -O noir-cli.jar
+          git clone https://github.com/owasp-noir/noir.git
+          cd noir
+          ./gradlew cli:installDist
+          echo "$(pwd)/cli/build/install/noir-cli/bin" >> $GITHUB_PATH
 
-      - name: Run Noir on the source code
+      - name: Run Noir on source code
         run: |
-          mkdir output
-          java -jar noir-cli.jar ./ -o ./output/endpoints.json
+          noir --path ./ > noir-output.json
 
-      - name: Show detected endpoints
+      - name: Show extracted endpoints
         run: |
           echo "== Detected Endpoints =="
-          cat ./output/endpoints.json
+          cat noir-output.json
+
+      - name: Upload noir output
+        uses: actions/upload-artifact@v3
+        with:
+          name: noir-endpoints
+          path: noir-output.json
