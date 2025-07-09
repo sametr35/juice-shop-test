@@ -24,15 +24,26 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gradle
 
-      - name: Clone noir repo
+      - name: Clone Noir repository
         run: git clone https://github.com/owasp-noir/noir.git
 
-      - name: Run noir on repo
+      - name: Show available Gradle tasks
         working-directory: noir
-        run: |
-          gradle run --args="--path ../" > ../noir-output.json
+        run: gradle tasks
 
-      - name: Show output
+      - name: Build Noir JAR
+        working-directory: noir
+        run: gradle build
+
+      - name: Find built JAR file
+        working-directory: noir
+        run: ls -lah build/libs
+
+      - name: Run Noir CLI
+        working-directory: noir
+        run: java -jar build/libs/noir-*-all.jar --path ../ > ../noir-output.json
+
+      - name: Show Noir output
         run: cat noir-output.json
 
       - name: Upload output
