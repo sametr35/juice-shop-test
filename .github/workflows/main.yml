@@ -8,12 +8,10 @@ on:
 
 jobs:
   scan-endpoints:
-    name: Run OWASP Noir CLI
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Set up Java
         uses: actions/setup-java@v3
@@ -21,24 +19,21 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Clone and Build Noir CLI
+      - name: Install Gradle
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gradle
+
+      - name: Clone noir repo and build CLI
         run: |
           git clone https://github.com/owasp-noir/noir.git
           cd noir
-          chmod +x gradlew
-          ./gradlew cli:installDist
+          gradle cli:installDist
           echo "$(pwd)/cli/build/install/noir-cli/bin" >> $GITHUB_PATH
 
       - name: Run Noir CLI
         run: |
           noir --path . > noir-output.json
 
-      - name: Show extracted endpoints
-        run: |
-          cat noir-output.json
-
-      - name: Upload noir output
-        uses: actions/upload-artifact@v4
-        with:
-          name: noir-endpoints
-          path: noir-output.json
+      - name: Show output
+        run: cat noir-output.json
