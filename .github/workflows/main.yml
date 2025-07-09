@@ -1,13 +1,13 @@
-name: OWASP Noir Endpoint Scanner
+name: Run OWASP Noir
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
 
 jobs:
-  scan-endpoints:
+  noir-scan:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,16 +24,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gradle
 
-      - name: Clone noir repo and build CLI
-        run: |
-          git clone https://github.com/owasp-noir/noir.git
-          cd noir
-          gradle cli:installDist
-          echo "$(pwd)/cli/build/install/noir-cli/bin" >> $GITHUB_PATH
+      - name: Clone noir repo
+        run: git clone https://github.com/owasp-noir/noir.git
 
-      - name: Run Noir CLI
+      - name: Run noir on repo
+        working-directory: noir
         run: |
-          noir --path . > noir-output.json
+          gradle run --args="--path ../" > ../noir-output.json
 
       - name: Show output
         run: cat noir-output.json
+
+      - name: Upload output
+        uses: actions/upload-artifact@v3
+        with:
+          name: noir-results
+          path: noir-output.json
