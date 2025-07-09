@@ -2,9 +2,9 @@ name: Run OWASP Noir
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
-    branches: [main]
+    branches: [master]
 
 jobs:
   noir-scan:
@@ -36,7 +36,7 @@ jobs:
         run: cat noir-output.json
 
       - name: Upload output
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: noir-results
           path: noir-output.json
