@@ -1,4 +1,4 @@
-name: Noir Endpoint Scanner
+name: OWASP Noir Endpoint Scanner
 
 on:
   push:
@@ -8,33 +8,33 @@ on:
 
 jobs:
   scan-endpoints:
-    name: Run OWASP Noir
+    name: Run OWASP Noir CLI
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Java (if needed)
+      - name: Set up Java
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Noir CLI
+      - name: Clone and Build Noir CLI
         run: |
           git clone https://github.com/owasp-noir/noir.git
           cd noir
+          chmod +x gradlew
           ./gradlew cli:installDist
           echo "$(pwd)/cli/build/install/noir-cli/bin" >> $GITHUB_PATH
 
-      - name: Run Noir on source code
+      - name: Run Noir CLI
         run: |
-          noir --path ./ > noir-output.json
+          noir --path . > noir-output.json
 
       - name: Show extracted endpoints
         run: |
-          echo "== Detected Endpoints =="
           cat noir-output.json
 
       - name: Upload noir output
