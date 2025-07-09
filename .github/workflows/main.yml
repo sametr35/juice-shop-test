@@ -22,7 +22,7 @@ jobs:
         
     - name: Install Noir
       run: |
-        go install github.com/noir-cr/noir@latest
+        go install github.com/owasp-noir/noir@latest
         
     - name: Create output directory
       run: mkdir -p scan-results
